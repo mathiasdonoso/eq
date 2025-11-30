@@ -11,25 +11,20 @@ import (
 
 func main() {
 	cmd := &cli.Command{
-		Name:        "eq",
-		Description: "A fast CLI utility that detects duplicate files",
-		Version:     "0.1.0",
-		Authors:     []any{"Mathias Donoso <mathiasd88@gmail.com>"},
+		Name:      "eq",
+		Usage:     "A fast CLI utility that detects duplicate files",
+		UsageText: "eq [paths...] [options]",
+		Description: `eq scans files and directories, hashes their contents, and reports files that are
+exact duplicates. It works recursively, supports multiple hashing algorithms, and
+can optionally verify matches byte-by-byte. You can mix files and directories, and
+eq will walk each path, skip symlinks, and group files by hash.`,
+		Version: "0.1.0",
+		Authors: []any{"Mathias Donoso <mathiasd88@gmail.com>"},
 		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:  "files",
-				Value: false,
-				Usage: "Compare explicit files only",
-			},
 			&cli.StringFlag{
 				Name:  "hash",
 				Value: "blake3",
 				Usage: "Hash algorithm to use.\n\tSupported: sha256, blake3, xxh64",
-			},
-			&cli.BoolFlag{
-				Name:  "verify",
-				Value: false,
-				Usage: "Perform byte-to-byte verification on\n\tfiles that share the same hash",
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
