@@ -17,8 +17,7 @@ Directories are scanned recursively. Symlinks and zero-size files are skipped.
 ## Description
 
 `eq` scans files and directories, hashes their contents, and reports which files are exact duplicates.  
-It supports multiple hashing algorithms and can optionally verify matches using a byte-by-byte comparison.
-
+It supports multiple hashing algorithms like sha256, blake3 and xxh64.
 
 ---
 
@@ -34,6 +33,12 @@ It supports multiple hashing algorithms and can optionally verify matches using 
 
 ## Examples
 
+Scan the current directory:
+
+```
+eq
+```
+
 Detect duplicates in two directories:
 
 ```
@@ -44,11 +49,5 @@ Use a specific hashing algorithm:
 
 ```
 eq --hash sha256 /mnt/data
-```
-
-Scan the current directory:
-
-```
-eq
 ```
 

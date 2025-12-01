@@ -15,9 +15,9 @@ func main() {
 		Usage:     "A fast CLI utility that detects duplicate files",
 		UsageText: "eq [paths...] [options]",
 		Description: `eq scans files and directories, hashes their contents, and reports files that are
-exact duplicates. It works recursively, supports multiple hashing algorithms, and
-can optionally verify matches byte-by-byte. You can mix files and directories, and
-eq will walk each path, skip symlinks, and group files by hash.`,
+exact duplicates. It works recursively and supports multiple hashing algorithms.
+You can mix files and directories, and eq will walk each path, skip symlinks, and
+group files by hash.`,
 		Version: "0.1.0",
 		Authors: []any{"Mathias Donoso <mathiasd88@gmail.com>"},
 		Flags: []cli.Flag{
