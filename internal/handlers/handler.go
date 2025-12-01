@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sync"
 
 	"github.com/mathiasdonoso/eq/pkg/hash"
 	"github.com/mathiasdonoso/eq/pkg/printer"
@@ -43,18 +45,17 @@ func CollectFileHashes(ctx context.Context, roots []string, algo hash.HashingAlg
 				return nil
 			}
 
-			fi, err := os.Stat(path)
+			info, err := d.Info()
 			if err != nil {
 				return err
 			}
 
-			size := fi.Size()
+			size := info.Size()
 			if size == 0 {
 				return nil
 			}
 
 			pre[size] = append(pre[size], path)
-
 			return nil
 		})
 
@@ -63,55 +64,93 @@ func CollectFileHashes(ctx context.Context, roots []string, algo hash.HashingAlg
 		}
 	}
 
-	var p []string
-	for _, slice := range pre {
-		if len(slice) > 1 {
-			p = append(p, slice...)
+	var candidates []string
+	for _, group := range pre {
+		if len(group) > 1 {
+			candidates = append(candidates, group...)
 		}
 	}
 
-	results := make(map[string][]string, len(p))
-	for _, root := range p {
-		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-
-			f, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			sum, err := hash.Hash(ctx, f, algo)
-			if err != nil {
-				return err
-			}
-
-			key := fmt.Sprintf("%x", sum)
-			results[key] = append(results[key], path)
-
-			return nil
-		})
-
-		if err != nil {
-			return nil, err
-		}
+	if len(candidates) == 0 {
+		return map[string][]string{}, nil
 	}
 
-	return results, nil
+	workerCount := runtime.NumCPU() * 2
+
+	type job struct {
+		path string
+	}
+
+	type result struct {
+		hash string
+		path string
+		err  error
+	}
+
+	jobs := make(chan job, workerCount*2)
+	results := make(chan result, workerCount*2)
+
+	var wg sync.WaitGroup
+
+	for range workerCount {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for j := range jobs {
+				f, err := os.Open(j.path)
+				if err != nil {
+					results <- result{err: err}
+					continue
+				}
+
+				sum, err := hash.Hash(ctx, f, algo)
+				f.Close()
+				if err != nil {
+					results <- result{err: err}
+					continue
+				}
+
+				results <- result{
+					hash: fmt.Sprintf("%x", sum),
+					path: j.path,
+				}
+			}
+		}()
+	}
+
+	go func() {
+		for _, p := range candidates {
+			jobs <- job{path: p}
+		}
+		close(jobs)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	final := make(map[string][]string)
+
+	for res := range results {
+		if res.err != nil {
+			return nil, res.err
+		}
+		final[res.hash] = append(final[res.hash], res.path)
+	}
+
+	return final, nil
 }
 
 func Run(ctx context.Context, cmd *cli.Command) (map[string][]string, error) {
 	folders := []string{}
 	if cmd.NArg() == 0 {
 		folders = append(folders, ".")
-	}
-
-	for i := range cmd.NArg() {
-		path := cmd.Args().Get(i)
-
-		folders = append(folders, path)
+	} else {
+		for i := range cmd.NArg() {
+			folders = append(folders, cmd.Args().Get(i))
+		}
 	}
 
 	algo, err := hash.ParseHashingAlgo(cmd.String("hash"))
@@ -119,10 +158,5 @@ func Run(ctx context.Context, cmd *cli.Command) (map[string][]string, error) {
 		return nil, err
 	}
 
-	result, err := CollectFileHashes(ctx, folders, algo)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return CollectFileHashes(ctx, folders, algo)
 }
