@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -26,10 +27,10 @@ func Handler(ctx context.Context, cmd *cli.Command) error {
 }
 
 func CollectFileHashes(ctx context.Context, roots []string, algo hash.HashingAlgo) (map[string][]string, error) {
-	results := make(map[string][]string)
+	pre := make(map[int64][]string, len(roots))
 
 	for _, root := range roots {
-		err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -40,6 +41,35 @@ func CollectFileHashes(ctx context.Context, roots []string, algo hash.HashingAlg
 
 			if d.Type()&os.ModeSymlink != 0 {
 				return nil
+			}
+
+			fi, err := os.Stat(path)
+			if err != nil {
+				return err
+			}
+
+			key := fi.Size()
+			pre[key] = append(pre[key], path)
+			return nil
+		})
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var p []string
+	for _, slice := range pre {
+		if len(slice) > 1 {
+			p = append(p, slice...)
+		}
+	}
+
+	results := make(map[string][]string, len(p))
+	for _, root := range p {
+		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
 			}
 
 			f, err := os.Open(path)
