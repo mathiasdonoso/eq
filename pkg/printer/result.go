@@ -9,7 +9,6 @@ import (
 func Print(output io.Writer, result map[string][]string) error {
 	sb := strings.Builder{}
 
-	sb.WriteString("------------------\n")
 	for i := range result {
 		if len(result[i]) == 1 {
 			continue
@@ -21,7 +20,6 @@ func Print(output io.Writer, result map[string][]string) error {
 		}
 		sb.WriteString("\n")
 	}
-	sb.WriteString("------------------\n")
 
 	_, err := output.Write([]byte(sb.String()))
 	if err != nil {
