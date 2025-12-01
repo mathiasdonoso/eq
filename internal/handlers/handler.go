@@ -48,8 +48,13 @@ func CollectFileHashes(ctx context.Context, roots []string, algo hash.HashingAlg
 				return err
 			}
 
-			key := fi.Size()
-			pre[key] = append(pre[key], path)
+			size := fi.Size()
+			if size == 0 {
+				return nil
+			}
+
+			pre[size] = append(pre[size], path)
+
 			return nil
 		})
 
