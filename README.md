@@ -10,7 +10,7 @@ eq [paths...] [options]
 ```
 
 You can provide any mix of files and directories.
-Directories are scanned recursively. Symlinks are skipped.
+Directories are scanned recursively. Symlinks and zero-size files are skipped.
 
 ---
 
