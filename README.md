@@ -1,5 +1,5 @@
 # eq
-A fast CLI utility that detects duplicate files
+A CLI utility that detects duplicate files
 
 ---
 
