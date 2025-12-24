@@ -9,49 +9,28 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-func Hash(ctx context.Context, reader io.Reader, algorithm HashingAlgo) ([]byte, error) {
-	switch algorithm {
-	case SHA256:
-		return hashSHA256(reader)
-	case BLAKE3:
-		return hashBLAKE3(reader)
-	case XXH64:
-		return hashXXH64(reader)
-	default:
-		return hashBLAKE3(reader)
-	}
+type HashingFunc interface {
+	io.Writer
+	Sum(p []byte) []byte
 }
 
-func hashSHA256(reader io.Reader) ([]byte, error) {
-	h := sha256.New()
+func Hash(ctx context.Context, reader io.Reader, algorithm HashingAlgo) ([]byte, error) {
+	var h HashingFunc
+
+	switch algorithm {
+	case SHA256:
+		h = sha256.New()
+	case BLAKE3:
+		h = blake3.New()
+	case XXH64:
+		h = xxhash.New()
+	default:
+		h = blake3.New()
+	}
 
 	if _, err := io.Copy(h, reader); err != nil {
 		return nil, err
 	}
 
 	return h.Sum(nil), nil
-}
-
-func hashBLAKE3(reader io.Reader) ([]byte, error) {
-	h := blake3.New()
-
-	_, err := io.Copy(h, reader)
-	if err != nil {
-		return nil, err
-	}
-
-	sum := h.Sum(nil)
-	return sum, nil
-}
-
-func hashXXH64(reader io.Reader) ([]byte, error) {
-	h := xxhash.New()
-
-	_, err := io.Copy(h, reader)
-	if err != nil {
-		return nil, err
-	}
-
-	sum := h.Sum(nil)
-	return sum, nil
 }
