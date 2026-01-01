@@ -3,6 +3,13 @@ A CLI utility that detects duplicate files
 
 ---
 
+## Installation
+```bash
+go install github.com/mathiasdonoso/eq@latest
+```
+
+---
+
 ## Usage
 
 ```
